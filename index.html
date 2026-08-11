@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>🖥️ 电脑状态 · PCStatus</title>
+<style>
+:root{--bg:#0b0f14;--fg:#e6edf3;--card:#11161d;--border:#2a3646;--accent:#4fc3f7;--ok:#66bb6a;--warn:#ffb74d;--danger:#ef5350;--dim:#7d8ca0}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;padding:24px 16px 48px}
+.wrap{max-width:960px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+h1{font-size:1.5rem;font-weight:700}
+h1 span{color:var(--dim);font-size:.9rem;font-weight:400}
+.status-pill{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:999px;font-size:.85rem;font-weight:600;border:1px solid var(--border)}
+.status-pill .dot{width:9px;height:9px;border-radius:50%;background:var(--dim)}
+.status-pill.active{color:var(--ok);border-color:rgba(102,187,106,.4)}
+.status-pill.active .dot{background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2s infinite}
+.status-pill.idle{color:var(--dim)}
+@keyframes pulse{50%{opacity:.4}}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.card h3{font-size:.75rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-weight:600}
+.big{font-size:2rem;font-weight:800;font-family:monospace}
+.big small{font-size:.9rem;color:var(--dim);font-weight:400}
+.bar{height:7px;background:#1f2937;border-radius:99px;margin-top:10px;overflow:hidden}
+.bar>div{height:100%;border-radius:99px;transition:width .6s cubic-bezier(.165,.84,.44,1),background .6s}
+.meta{display:flex;justify-content:space-between;font-size:.75rem;color:var(--dim);margin-top:6px;font-family:monospace}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--border)}
+th{color:var(--dim);font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
+td.pct{font-family:monospace;text-align:right}
+td.name{font-family:monospace;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.pid{color:var(--dim);font-family:monospace}
+.foot{color:var(--dim);font-size:.75rem;text-align:center;margin-top:24px;font-family:monospace}
+.snap{color:var(--accent);font-family:monospace;font-size:.8rem}
+.snap.old{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🖥️ 电脑状态 <span id="host">@ …</span></h1>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="status-pill idle" id="pill"><span class="dot"></span><span id="pill-text">加载中…</span></span>
+      <span class="snap" id="snap">…</span>
+    </div>
+  </header>
+
+  <div class="cards">
+    <div class="card"><h3>CPU</h3><div class="big" id="cpu">–<small>%</small></div><div class="bar"><div id="cpu-bar" style="width:0%"></div></div><div class="meta"><span id="cpu-load">load: –</span><span id="uptime">–</span></div></div>
+    <div class="card"><h3>内存</h3><div class="big" id="mem">–<small>%</small></div><div class="bar"><div id="mem-bar" style="width:0%"></div></div><div class="meta"><span id="mem-detail">–</span><span id="swap-detail">–</span></div></div>
+    <div class="card"><h3>GPU</h3><div class="big" id="gpu">–<small>%</small></div><div class="bar"><div id="gpu-bar" style="width:0%"></div></div><div class="meta"><span id="gpu-detail">–</span><span id="gpu-temp">–</span></div></div>
+    <div class="card"><h3>磁盘 /</h3><div class="big" id="disk">–<small>%</small></div><div class="bar"><div id="disk-bar" style="width:0%"></div></div><div class="meta"><span id="disk-detail">–</span><span id="disk-extra">–</span></div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><h3>🔥 CPU 占用 Top 3</h3><table><thead><tr><th>进程</th><th>PID</th><th style="text-align:right">CPU</th></tr></thead><tbody id="top-cpu"><tr><td colspan="3" style="color:var(--dim)">–</td></tr></tbody></table></div>
+    <div class="card"><h3>💾 内存占用 Top 3</h3><table><thead><tr><th>进程</th><th>PID</th><th style="text-align:right">RSS</th></tr></thead><tbody id="top-mem"><tr><td colspan="3" style="color:var(--dim)">–</td></tr></tbody></table></div>
+    <div class="card" style="grid-column:1/-1"><h3>🎮 GPU 进程（显存）</h3><table><thead><tr><th>进程</th><th>PID</th><th style="text-align:right">显存</th></tr></thead><tbody id="top-gpu"><tr><td colspan="3" style="color:var(--dim)">无 GPU 负载</td></tr></tbody></table></div>
+  </div>
+
+  <div class="foot">PCStatus · 数据文件接口 status.json · 页面每 30s 自动拉取</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const FMT=n=>{if(n===undefined||n===null)return'–';const u=['B','KB','MB','GB','TB'];let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return n.toFixed(n>=100?0:1)+' '+u[i]};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const color=p=>p>85?'var(--danger)':p>60?'var(--warn)':'var(--ok)';
+function bar(id,p){const el=$(id);el.style.width=Math.min(p,100)+'%';el.style.background=color(p)}
+function rows(list,kind){
+  if(!list||!list.length)return '<tr><td colspan="3" style="color:var(--dim)">–</td></tr>';
+  return list.map(p=>{
+    const val=kind==='cpu'?(p.pct!==undefined?p.pct.toFixed(1)+'%':'–')
+      :kind==='gpu'?FMT(p.rss*1024*1024)
+      :FMT(p.rss*1024);
+    return '<tr><td class="name">'+esc(p.name)+'</td><td class="pid">'+p.pid+'</td><td class="pct">'+val+'</td></tr>';
+  }).join('');
+}
+let lastData=null;
+function render(d){
+  lastData=d;
+  $('host').textContent='@ '+d.hostname;
+  $('cpu').innerHTML=(d.cpu??0).toFixed(1)+'<small>%</small>';bar('cpu-bar',d.cpu??0);
+  $('cpu-load').textContent='load: '+(d.loadavg||[]).map(x=>x.toFixed(2)).join(' / ');
+  $('uptime').textContent='up '+Math.floor((d.uptime||0)/3600)+'h'+Math.floor((d.uptime||0)%3600/60)+'m';
+  $('mem').innerHTML=(d.mem_pct??0).toFixed(1)+'<small>%</small>';bar('mem-bar',d.mem_pct??0);
+  $('mem-detail').textContent=FMT(d.mem_used)+' / '+FMT(d.mem_total);
+  $('swap-detail').textContent='swap: '+FMT(d.swap_used);
+  if(d.gpu&&d.gpu.available){
+    $('gpu').innerHTML=d.gpu.util.toFixed(0)+'<small>%</small>';bar('gpu-bar',d.gpu.util);
+    $('gpu-detail').textContent=FMT(d.gpu.mem_used*1024*1024)+' / '+FMT(d.gpu.mem_total*1024*1024);
+    $('gpu-temp').textContent=d.gpu.temp.toFixed(0)+'°C · '+esc(d.gpu.model);
+  }else{$('gpu').innerHTML='–<small>%</small>';$('gpu-bar').style.width=0;$('gpu-detail').textContent='N/A';$('gpu-temp').textContent='无 NVIDIA GPU'}
+  $('disk').innerHTML=(d.disk_pct??0).toFixed(0)+'<small>%</small>';bar('disk-bar',d.disk_pct??0);
+  $('disk-detail').textContent=FMT(d.disk_used)+' / '+FMT(d.disk_total);
+  $('top-cpu').innerHTML=rows(d.top_cpu,'cpu');
+  $('top-mem').innerHTML=rows(d.top_mem,'mem');
+  $('top-gpu').innerHTML=d.top_gpu&&d.top_gpu.length?rows(d.top_gpu,'gpu'):'<tr><td colspan="3" style="color:var(--dim)">无 GPU 负载</td></tr>';
+  const pill=$('pill'),pt=$('pill-text');
+  if(d.user_active){pill.className='status-pill active';pt.textContent='🖱️ 正在使用中'}
+  else{pill.className='status-pill idle';pt.textContent='💤 已空闲 '+(d.idle_secs<60?Math.floor(d.idle_secs)+'s':Math.floor(d.idle_secs/60)+'m')}
+  const snap=$('snap');
+  if(d.time){const age=Math.floor(Date.now()/1000-d.time);snap.textContent='📸 数据 '+(age<90?'刚刚':age+'s 前')+' ('+new Date(d.time*1000).toLocaleTimeString('zh-CN',{hour12:false})+')';snap.className='snap'+(age>300?' old':'');}
+}
+// 拉取 status.json（带时间戳参数绕过 CDN 缓存），失败时保留旧数据并提示
+async function tick(){
+  try{
+    const r=await fetch('status.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    render(await r.json());
+    const pt=$('pill-text');
+    if(pt.textContent==='加载中…'||pt.textContent.startsWith('⚠️'))pt.textContent='已连接';
+  }catch(e){
+    const pt=$('pill-text');
+    if(pt.textContent!=='加载中…')pt.textContent='⚠️ 更新失败，显示旧数据';
+    console.error('status fetch error:',e);
+  }
+}
+tick();setInterval(tick,30000);
+</script>
+</body>
+</html>
